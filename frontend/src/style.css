@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  --color-text: rgba(255, 255, 255, 0.92);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+  --color-background-muted: rgba(255, 255, 255, 0.08);
+  --color-bg: #0d0f14;
+  --color-bg-elevated: #14171f;
+
+  /* Auth (dashboard) */
+  --auth-text: rgba(255, 255, 255, 0.92);
+  --auth-text-muted: rgba(255, 255, 255, 0.5);
+
+  color: var(--color-text);
+  background-color: var(--color-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+a {
+  font-weight: 500;
+  color: #5865f2;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #7289da;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+button {
+  font-size: inherit;
+}
+
+/* Light mode override for auth if needed */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-text: #1a1d24;
+    --color-text-muted: #5a6178;
+    --color-background-muted: rgba(0, 0, 0, 0.06);
+    --color-bg: #f0f2f5;
+    --color-bg-elevated: #ffffff;
+    --auth-text: #1a1d24;
+    --auth-text-muted: #5a6178;
+  }
+}
