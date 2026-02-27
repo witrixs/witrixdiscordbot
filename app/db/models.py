@@ -38,3 +38,11 @@ class UserLevel(Base):
     xp = Column(Integer, default=0, nullable=False)
     days_on_server = Column(Integer, default=0, nullable=False)
 
+
+class DiscordUserPrefs(Base):
+    """Выбор сервера по умолчанию для пользователя, вошедшего через Discord."""
+    __tablename__ = "discord_user_prefs"
+
+    discord_id = Column(BigInteger, primary_key=True)
+    default_guild_id = Column(BigInteger, nullable=True)
+

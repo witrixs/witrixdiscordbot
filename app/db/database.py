@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import Config
 from app.db.base import Base
-from app.db.models import AdminUser, GuildConfig, UserLevel
+from app.db.models import AdminUser, DiscordUserPrefs, GuildConfig, UserLevel
 
 
 def _make_engine(db_url: str):
@@ -142,6 +142,30 @@ class Database:
         finally:
             session.close()
 
+    def get_users_in_guild_count(self, guild_id: int) -> int:
+        session = self.Session()
+        try:
+            return session.query(UserLevel).filter_by(guild_id=guild_id).count()
+        finally:
+            session.close()
+
+    def get_users_in_guild_paginated(
+        self,
+        guild_id: int,
+        offset: int = 0,
+        limit: int = 20,
+        order_by: str = "level",
+        order: str = "desc",
+    ) -> list[UserLevel]:
+        session = self.Session()
+        try:
+            q = session.query(UserLevel).filter_by(guild_id=guild_id)
+            col = getattr(UserLevel, order_by, UserLevel.level)
+            q = q.order_by(col.desc() if order == "desc" else col.asc())
+            return q.offset(offset).limit(limit).all()
+        finally:
+            session.close()
+
     def add_all_users_to_guild(self, guild_id: int, members: Iterable) -> None:
         session = self.Session()
         try:
@@ -153,6 +177,26 @@ class Database:
                     session.add(
                         UserLevel(guild_id=guild_id, user_id=member.id, level=1, message_count=0, xp=0, days_on_server=0)
                     )
+            session.commit()
+        finally:
+            session.close()
+
+    def get_discord_default_guild(self, discord_id: int) -> Optional[int]:
+        session = self.Session()
+        try:
+            row = session.query(DiscordUserPrefs).filter_by(discord_id=discord_id).first()
+            return row.default_guild_id if row else None
+        finally:
+            session.close()
+
+    def set_discord_default_guild(self, discord_id: int, guild_id: Optional[int]) -> None:
+        session = self.Session()
+        try:
+            row = session.query(DiscordUserPrefs).filter_by(discord_id=discord_id).first()
+            if row:
+                row.default_guild_id = guild_id
+            else:
+                session.add(DiscordUserPrefs(discord_id=discord_id, default_guild_id=guild_id))
             session.commit()
         finally:
             session.close()

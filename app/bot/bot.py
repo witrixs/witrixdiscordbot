@@ -73,7 +73,7 @@ from discord.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import Config
-from app.core.guild_cache import sync_all as guild_cache_sync
+from app.core.guild_cache import get_user_info as guild_get_user_info, is_deleted_user as guild_is_deleted_user, set_user_info as guild_set_user_info, sync_all as guild_cache_sync
 from app.core.levels import calculate_level, get_message_threshold, get_xp_threshold
 from app.db.database import Database
 
@@ -89,18 +89,27 @@ class Bot(commands.Bot):
         self.token = Config.DISCORD_TOKEN
 
     async def setup_hook(self):
-        # guilds может быть пустым на старте — но логика у тебя уже обкатана
+        # В БД не добавляем ботов и удалённые аккаунты (deleted_user_...), чтобы они не появлялись в топе
         for guild in self.guilds:
             print(f"Инициализация пользователей на сервере: {guild.name}")
-            self.db.add_all_users_to_guild(guild.id, guild.members)
+            members_ok = [
+                m for m in guild.members
+                if not getattr(m, "bot", False)
+                and not guild_is_deleted_user(
+                    m.display_name or getattr(m, "global_name", None) or m.name or ""
+                )
+            ]
+            self.db.add_all_users_to_guild(guild.id, members_ok)
         self.add_view(RoleSelectView())
         self.update_days.start()
+        self.sync_all_levels.start()
 
     def _build_guild_cache(self):
-        """Собрать кэш гильдий/каналов/ролей для веб-API."""
+        """Собрать кэш гильдий/каналов/ролей/участников для веб-API."""
         guilds = []
         channels = {}
         roles = {}
+        users = {}
         for guild in self.guilds:
             guilds.append({
                 "id": guild.id,
@@ -116,7 +125,16 @@ class Bot(commands.Bot):
                 for r in guild.roles
                 if not r.is_default()
             ]
-        guild_cache_sync(guilds, channels, roles)
+            users[guild.id] = {}
+            for member in guild.members:
+                if getattr(member, "bot", False):
+                    continue
+                name = member.display_name or getattr(member, "global_name", None) or member.name or f"User {member.id}"
+                if guild_is_deleted_user(name):
+                    continue
+                avatar = str(member.display_avatar.url) if member.display_avatar else None
+                users[guild.id][member.id] = {"name": name, "avatar": avatar}
+        guild_cache_sync(guilds, channels, roles, users)
 
     async def on_ready(self):
         status_type = getattr(ActivityType, Config.BOT_STATUS_TYPE, ActivityType.listening)
@@ -126,10 +144,22 @@ class Bot(commands.Bot):
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
             print(f"Команды синхронизированы для сервера: {guild.name}")
+            try:
+                await guild.chunk()
+            except Exception as e:
+                print(f"Предупреждение: не удалось подгрузить участников {guild.name}: {e}")
         self._build_guild_cache()
         print("Бот готов к работе! Слэш-команды синхронизированы.")
 
     async def on_guild_join(self, guild):
+        try:
+            await guild.chunk()
+        except Exception:
+            pass
+        # Регистрируем слэш-команды для нового сервера (иначе они не появятся сразу)
+        self.tree.copy_global_to(guild=guild)
+        await self.tree.sync(guild=guild)
+        print(f"Команды синхронизированы для нового сервера: {guild.name}")
         self._build_guild_cache()
 
     async def on_guild_remove(self, guild):
@@ -146,6 +176,7 @@ class Bot(commands.Bot):
 
                 current_level = user_level.level
                 new_level = calculate_level(user_level.message_count, new_xp, new_days)
+                # уровень только вверх, пересчёт всегда по текущему XP
                 new_level = max(current_level, new_level)
 
                 self.db.update_user_level(
@@ -170,6 +201,40 @@ class Bot(commands.Bot):
 
     @update_days.before_loop
     async def before_update_days(self):
+        await self.wait_until_ready()
+
+    @tasks.loop(minutes=10)
+    async def sync_all_levels(self):
+        """Периодически пересчитываем уровень у всех по текущему XP и при переходе порога — авто-ап и уведомление."""
+        for guild in self.guilds:
+            users = self.db.get_users_in_guild(guild.id)
+            config = self.db.get_guild_config(guild.id)
+            channel = None
+            if config and config.get("level_channel_id"):
+                channel = guild.get_channel(config["level_channel_id"])
+            for user_level in users:
+                computed = calculate_level(
+                    user_level.message_count, user_level.xp, user_level.days_on_server
+                )
+                if computed <= user_level.level:
+                    continue
+                self.db.update_user_level(
+                    guild.id,
+                    user_level.user_id,
+                    message_count=user_level.message_count,
+                    level=computed,
+                    xp=user_level.xp,
+                    days_on_server=user_level.days_on_server,
+                )
+                if computed > 5 and channel:
+                    member = guild.get_member(user_level.user_id)
+                    if member:
+                        await channel.send(
+                            f"Красава брад {member.mention}! Ты достиг нового уровня {computed}!"
+                        )
+
+    @sync_all_levels.before_loop
+    async def before_sync_all_levels(self):
         await self.wait_until_ready()
 
     async def on_member_join(self, member):
@@ -199,30 +264,37 @@ class Bot(commands.Bot):
     async def on_message(self, message):
         if message.author.bot:
             return
+        name = getattr(message.author, "global_name", None) or message.author.name or ""
+        if guild_is_deleted_user(name):
+            return  # не создаём запись и не начисляем XP удалённым аккаунтам
 
         user_level = self.db.get_user_level(message.guild.id, message.author.id)
+        old_level = user_level.level
         user_level.message_count += 1
 
-        xp_gain = 10 if user_level.level >= 5 else 0
+        xp_gain = 10 if old_level >= 5 else 0
         user_level.xp += xp_gain
 
-        new_level = calculate_level(user_level.message_count, user_level.xp, user_level.days_on_server)
-        if new_level > user_level.level:
-            user_level.level = new_level
-            config = self.db.get_guild_config(message.guild.id)
-            if config and config["level_channel_id"]:
-                channel = message.guild.get_channel(config["level_channel_id"])
-                if channel:
-                    await channel.send(f"Красава брад {message.author.mention}! Ты достиг нового уровня {user_level.level}!")
-
+        # Всегда пересчитываем уровень по текущему XP и сохраняем в БД
+        computed_level = calculate_level(
+            user_level.message_count, user_level.xp, user_level.days_on_server
+        )
         self.db.update_user_level(
             message.guild.id,
             message.author.id,
             message_count=user_level.message_count,
-            level=user_level.level,
+            level=computed_level,
             xp=user_level.xp,
             days_on_server=user_level.days_on_server,
         )
+        if computed_level > old_level and computed_level > 5:
+            config = self.db.get_guild_config(message.guild.id)
+            if config and config["level_channel_id"]:
+                channel = message.guild.get_channel(config["level_channel_id"])
+                if channel:
+                    await channel.send(
+                        f"Красава брад {message.author.mention}! Ты достиг нового уровня {computed_level}!"
+                    )
 
     async def create_welcome_image(self, member, member_count):
         async with aiohttp.ClientSession() as session:
@@ -281,7 +353,7 @@ class Bot(commands.Bot):
         draw_mask.ellipse((0, 0, 100, 100), fill=255)
         avatar.putalpha(mask)
 
-        background = Image.new("RGBA", (600, 150), (0, 0, 0, 255))
+        background = Image.new("RGBA", (600, 168), (0, 0, 0, 255))
         draw_border = ImageDraw.Draw(background)
         draw_border.ellipse((15, 20, 125, 130), outline=(255, 255, 255, 255), width=3)
         background.paste(avatar, (20, 25), avatar)
@@ -314,21 +386,52 @@ class Bot(commands.Bot):
             progress = user_level.message_count / next_threshold if next_threshold > 0 else 1
             xp_text = f"{user_level.message_count}/{next_threshold} сообщений"
         else:
-            current_progress = max(0, user_level.xp - current_threshold)
-            required_xp = next_threshold - current_threshold
-            progress = current_progress / required_xp if required_xp > 0 else 1
+            # Полоса: прогресс в сегменте 0–600 до след. уровня (сбрасывается после аппа)
+            required_in_segment = next_threshold - current_threshold  # 600 XP до след. уровня
+            if required_in_segment <= 0:
+                progress = 1.0
+                xp_in_segment = 0
+            else:
+                xp_in_segment = max(0, user_level.xp - current_threshold)
+                progress = min(1.0, float(xp_in_segment) / required_in_segment)
+            # Текст — полный XP (209455), полоса — по сегменту (5/600)
             xp_text = f"{user_level.xp}/{next_threshold} XP"
 
-        draw.text((140, 90), xp_text, fill=(255, 255, 255, 255), font=small_font)
+        draw.text((140, 88), xp_text, fill=(255, 255, 255, 255), font=small_font)
 
-        bar_width = 400
-        bar_height = 20
-        filled_width = int(bar_width * min(progress, 1))
+        # Полоса прогресса: отступ от текста, ровная и аккуратная
+        bar_left = 140
+        bar_top = 118
+        bar_width = 440
+        bar_height = 22
+        bar_radius = 11
+        progress = max(0.0, min(1.0, float(progress)))
+        filled_width = int(bar_width * progress)
+        if filled_width == 0 and (progress > 0 or (user_level.level >= 5 and user_level.xp > 0)):
+            filled_width = 8
+        if filled_width > bar_width:
+            filled_width = bar_width
 
-        draw.rounded_rectangle((140, 120, 140 + bar_width, 120 + bar_height), radius=10, fill=(128, 128, 128, 255))
-        if filled_width > 0:
+        # Фон полосы (серый, скруглённый)
+        draw.rounded_rectangle(
+            (bar_left, bar_top, bar_left + bar_width, bar_top + bar_height),
+            radius=bar_radius,
+            fill=(70, 70, 70, 255),
+            outline=(100, 100, 100, 255),
+            width=1,
+        )
+        # Заливка прогресса: скруглённая слева и справа (капсула), как контейнер
+        inset = 2
+        fill_left = bar_left + inset
+        fill_top = bar_top + inset
+        fill_height = bar_height - 2 * inset
+        fill_width = max(0, filled_width - 2 * inset)
+        if fill_width > 0 and fill_height > 0:
+            fill_radius = min(bar_radius - 1, fill_height // 2, fill_width // 2)
             draw.rounded_rectangle(
-                (140, 120, 140 + filled_width, 120 + bar_height), radius=10, fill=(186, 85, 211, 255)
+                (fill_left, fill_top, fill_left + fill_width, fill_top + fill_height),
+                radius=fill_radius,
+                fill=(186, 85, 211, 255),
             )
 
         buffer = io.BytesIO()
@@ -343,7 +446,33 @@ bot = Bot()
 @app_commands.command(name="level", description="Посмотреть свой уровень")
 async def level(interaction: discord.Interaction):
     await interaction.response.defer()
+    name = getattr(interaction.user, "global_name", None) or interaction.user.name or ""
+    if guild_is_deleted_user(name):
+        await interaction.followup.send("Для удалённых аккаунтов уровень не отображается.", ephemeral=True)
+        return
     user_level = bot.db.get_user_level(interaction.guild.id, interaction.user.id)
+    old_level = user_level.level
+    computed_level = calculate_level(
+        user_level.message_count, user_level.xp, user_level.days_on_server
+    )
+    # Всегда записываем в БД рассчитанный уровень (синхронизация)
+    bot.db.update_user_level(
+        interaction.guild.id,
+        interaction.user.id,
+        message_count=user_level.message_count,
+        level=computed_level,
+        xp=user_level.xp,
+        days_on_server=user_level.days_on_server,
+    )
+    user_level.level = computed_level
+    if computed_level > old_level and computed_level > 5:
+        config = bot.db.get_guild_config(interaction.guild.id)
+        if config and config["level_channel_id"]:
+            channel = interaction.guild.get_channel(config["level_channel_id"])
+            if channel:
+                await channel.send(
+                    f"Красава брад {interaction.user.mention}! Ты достиг нового уровня {computed_level}!"
+                )
     image = await bot.create_level_image(interaction.user, user_level)
     if not image:
         await interaction.followup.send("Не удалось собрать картинку уровня (аватар недоступен).", ephemeral=True)
@@ -376,46 +505,93 @@ async def set_welcome(interaction: discord.Interaction, channel: discord.TextCha
     )
 
 
+def _rank_emoji(rank: int) -> str:
+    if rank == 1:
+        return "👑"
+    if rank == 2:
+        return "🥈"
+    if rank == 3:
+        return "🥉"
+    return f"**{rank}.**"
+
+
 @app_commands.command(name="top", description="Показать топ-10 пользователей по уровню")
 async def top(interaction: discord.Interaction):
     await interaction.response.defer()
     users = bot.db.get_users_in_guild(interaction.guild.id)
-    top_users = sorted(users, key=lambda x: (x.level, x.xp), reverse=True)[:10]
-    embed = discord.Embed(title="Топ-10 пользователей по уровню", color=discord.Color.purple())
-    for i, user_level in enumerate(top_users, 1):
+    top_candidates = sorted(users, key=lambda x: (x.level, x.xp), reverse=True)[:50]
+    gid = interaction.guild.id
+    rank = 0
+    lines = []
+    for user_level in top_candidates:
+        if rank >= 10:
+            break
         member = interaction.guild.get_member(user_level.user_id)
         if member:
-            embed.add_field(
-                name=f"{i}. {member.name}",
-                value=f"Уровень: {user_level.level} | XP: {user_level.xp}",
-                inline=False,
-            )
+            name = member.display_name or member.name
+        else:
+            info = guild_get_user_info(gid, user_level.user_id)
+            name = (info.get("name") if info else None)
+            if not name:
+                try:
+                    user = await interaction.client.fetch_user(user_level.user_id)
+                    name = getattr(user, "global_name", None) or user.name or f"Участник #{user_level.user_id}"
+                    avatar = str(user.display_avatar.url) if user.display_avatar else None
+                    guild_set_user_info(gid, user_level.user_id, name, avatar)
+                except Exception:
+                    name = f"Участник #{user_level.user_id}"
+        if guild_is_deleted_user(name):
+            continue
+        rank += 1
+        emoji = _rank_emoji(rank)
+        # Экранируем markdown в нике (дизейблим * _ и т.д. для безопасности)
+        safe_name = discord.utils.escape_markdown(str(name)) if len(str(name)) <= 32 else str(name)[:29] + "..."
+        lines.append(f"{emoji} {safe_name}\n   └ Уровень **{user_level.level}** • **{user_level.xp}** XP")
+
+    embed = discord.Embed(
+        title="🏆 Топ-10 по уровню",
+        description="\n\n".join(lines) if lines else "Пока никого нет в рейтинге. Пишите в чат — зарабатывайте XP!",
+        color=discord.Color.gold(),
+    )
+    embed.set_footer(text=f"Сервер: {interaction.guild.name}")
+    if interaction.guild.icon:
+        embed.set_thumbnail(url=str(interaction.guild.icon.url))
     await interaction.followup.send(embed=embed)
 
 
-@app_commands.command(name="help", description="Показать список команд и описание админки")
+@app_commands.command(name="help", description="Список команд и ссылка на панель управления")
 async def help_command(interaction: discord.Interaction):
+    dashboard_url = (Config.FRONTEND_URL or "").rstrip("/")
+    if not dashboard_url.startswith("http"):
+        dashboard_url = ""
+
     embed = discord.Embed(
-        title="Информация по командам",
-        description="Вот список доступных команд и информация!",
-        color=discord.Color.blue(),
+        title="📋 Команды бота",
+        description=(
+            "**Для всех:**\n"
+            "• `/level` — ваш уровень и прогресс до следующего\n"
+            "• `/top` — топ-10 участников сервера по уровню\n"
+            "• `/help` — это сообщение\n\n"
+            "**Только для администраторов:**\n"
+            "• `/setwelcome` — канал и роль для приветствия новых участников\n"
+            "• `/setup_roles` — отправить в канал сообщение для выбора ролей"
+        ),
+        color=discord.Color.blurple(),
     )
+    embed.set_footer(text="Управление ботом и настройки — в веб-панели по кнопке ниже.")
 
-    embed.add_field(name="/level", value="Показывает ваш текущий уровень и прогресс.", inline=False)
-    embed.add_field(name="/top", value="Показывает топ-10 пользователей по уровню.", inline=False)
-    embed.add_field(name="/help", value="Показывает это сообщение.", inline=False)
-    embed.add_field(
-        name="/setwelcome",
-        value="Устанавливает канал и роль для приветствия новых пользователей (только для админов).",
-        inline=False,
-    )
-    embed.add_field(
-        name="/setup_roles",
-        value="Отправляет сообщение для выбора ролей в настроенный канал (только для админов).",
-        inline=False,
-    )
+    view = discord.ui.View()
+    if dashboard_url:
+        view.add_item(
+            discord.ui.Button(
+                label="Открыть панель управления",
+                url=dashboard_url,
+                emoji="🔗",
+                style=discord.ButtonStyle.link,
+            )
+        )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=view if view.children else None, ephemeral=True)
 
 
 def _build_role_options(

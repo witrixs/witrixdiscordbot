@@ -5,23 +5,32 @@ def get_message_threshold(level: int) -> int:
 
 
 def get_xp_threshold(level: int) -> int:
+    """Суммарный XP (порог) для достижения уровня level."""
     if level <= 5:
         return get_message_threshold(level)
     return get_message_threshold(5) + (level - 5) * 600
 
 
-def calculate_level(message_count: int, xp: int, days_on_server: int) -> int:
-    if message_count < get_message_threshold(5):
-        for lvl in range(1, 6):
-            threshold = get_message_threshold(lvl)
-            if message_count < threshold:
-                return lvl - 1
-        return 4
-
-    total_xp = xp + (days_on_server // 2) * 15
+def level_from_total_xp(total_xp: int) -> int:
+    """Уровень 5+ по суммарному XP. Один источник истины для высоких уровней."""
     for lvl in range(5, 1000):
-        threshold = get_xp_threshold(lvl)
-        if total_xp < threshold:
+        if total_xp < get_xp_threshold(lvl):
             return lvl - 1
     return 999
+
+
+def calculate_level(message_count: int, xp: int, days_on_server: int) -> int:
+    """
+    Уровень по данным из БД.
+    Уровни 1–4: по сообщениям, если XP ещё мало. Как только XP хватает на 5+ уровень — считаем только по XP.
+    """
+    # Если XP уже хватает на 5+ уровень — всегда считаем по XP (чтобы не сбросить на 3 уровень при малом message_count)
+    if xp >= get_xp_threshold(5):
+        return level_from_total_xp(xp)
+    if message_count < get_message_threshold(5):  # 50 сообщений для 5 уровня
+        for lvl in range(1, 6):
+            if message_count < get_message_threshold(lvl):
+                return lvl - 1
+        return 4
+    return level_from_total_xp(xp)
 
