@@ -4,9 +4,10 @@ import { useRoute } from 'vue-router'
 import DashboardLayout from '@/components/DashboardLayout.vue'
 
 const route = useRoute()
+// В шапке страницы — только короткое название; во вкладке браузера остаётся полный title из meta
 const pageTitle = computed(() => {
   const t = (route.meta.title as string) ?? 'Панель'
-  return t.replace(/\s*—\s*Witrix Bot\s*$/, '').trim() || 'Панель'
+  return t.replace(/\s*\/\/.*$/, '').trim() || 'Панель'
 })
 </script>
 

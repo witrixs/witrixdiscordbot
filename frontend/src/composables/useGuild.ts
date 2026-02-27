@@ -4,27 +4,25 @@ import { fetchGuilds } from '@/api/guilds'
 
 const STORAGE_KEY = 'witrix_selected_guild_id'
 
-function getStoredGuildId(): number | null {
+function getStoredGuildId(): string | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const n = parseInt(raw, 10)
-    return Number.isFinite(n) ? n : null
+    return raw || null
   } catch {
     return null
   }
 }
 
 const guilds = ref<GuildOut[]>([])
-const selectedId = ref<number | null>(getStoredGuildId())
+const selectedId = ref<string | null>(getStoredGuildId())
 
 export function useGuild() {
   const selectedGuild = computed(() => guilds.value.find((g) => g.id === selectedId.value) ?? null)
 
-  function setSelectedGuildId(id: number | null) {
+  function setSelectedGuildId(id: string | null) {
     selectedId.value = id
     if (id !== null) {
-      localStorage.setItem(STORAGE_KEY, String(id))
+      localStorage.setItem(STORAGE_KEY, id)
     } else {
       localStorage.removeItem(STORAGE_KEY)
     }
@@ -33,8 +31,9 @@ export function useGuild() {
   async function loadGuilds() {
     try {
       guilds.value = await fetchGuilds()
-      if (guilds.value.length && selectedId.value === null) {
-        setSelectedGuildId(guilds.value[0].id)
+      const firstGuild = guilds.value[0]
+      if (firstGuild && selectedId.value === null) {
+        setSelectedGuildId(firstGuild.id)
       }
       if (selectedId.value !== null && !guilds.value.some((g) => g.id === selectedId.value)) {
         setSelectedGuildId(guilds.value[0]?.id ?? null)

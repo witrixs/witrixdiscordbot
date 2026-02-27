@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { TOKEN_KEY } from '@/api/auth'
+import { TOKEN_KEY, getCachedUserMe } from '@/api/auth'
 import AuthView from '@/components/AuthView.vue'
-import DashboardPlaceholder from '@/views/DashboardPlaceholder.vue'
+import AuthCallbackView from '@/views/AuthCallbackView.vue'
 import DashboardShell from '@/views/DashboardShell.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import UsersView from '@/views/UsersView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,7 +14,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: AuthView,
-      meta: { title: 'Вход — Witrix Bot', guest: true },
+      meta: { title: 'Вход // witrix Discord Bot', guest: true },
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: AuthCallbackView,
+      meta: { title: 'Вход…', guest: true },
     },
     {
       path: '/dashboard',
@@ -24,19 +31,19 @@ const router = createRouter({
           path: '',
           name: 'dashboard',
           component: DashboardView,
-          meta: { title: 'Панель — Witrix Bot' },
+          meta: { title: 'Панель // witrix Discord Bot' },
         },
         {
-          path: 'servers',
-          name: 'dashboard-servers',
-          component: DashboardPlaceholder,
-          meta: { title: 'Серверы — Witrix Bot' },
+          path: 'users',
+          name: 'dashboard-users',
+          component: UsersView,
+          meta: { title: 'Пользователи // witrix Discord Bot' },
         },
         {
           path: 'settings',
           name: 'dashboard-settings',
           component: SettingsView,
-          meta: { title: 'Настройки — Witrix Bot' },
+          meta: { title: 'Настройки // witrix Discord Bot' },
         },
       ],
     },
@@ -46,6 +53,8 @@ const router = createRouter({
     },
   ],
 })
+
+const routesRequireGuildAdmin = ['/dashboard/users', '/dashboard/settings']
 
 router.beforeEach((to) => {
   const token = localStorage.getItem(TOKEN_KEY)
@@ -63,6 +72,14 @@ router.beforeEach((to) => {
   }
   if (guestOnly && token) {
     return { path: '/dashboard' }
+  }
+
+  // Discord без прав админа не может заходить в Пользователи и Настройки
+  if (token && routesRequireGuildAdmin.includes(to.path)) {
+    const cached = getCachedUserMe()
+    if (cached?.is_discord_user && (cached.admin_guild_ids?.length ?? 0) === 0) {
+      return { path: '/dashboard' }
+    }
   }
 })
 

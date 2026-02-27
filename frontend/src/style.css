@@ -11,10 +11,55 @@
   --color-background-muted: rgba(255, 255, 255, 0.08);
   --color-bg: #0d0f14;
   --color-bg-elevated: #14171f;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-hover: rgba(255, 255, 255, 0.1);
+  --color-input-bg: rgba(255, 255, 255, 0.06);
+  --color-input-border: rgba(255, 255, 255, 0.1);
+  --color-glass: rgba(255, 255, 255, 0.06);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Layout (glass) */
+  --layout-sidebar-bg: rgba(18, 20, 26, 0.98);
+  --layout-sidebar-border: rgba(255, 255, 255, 0.06);
+  --layout-header-bg: rgba(13, 15, 20, 0.9);
+  --layout-header-border: rgba(255, 255, 255, 0.06);
+  --layout-nav-hover: rgba(255, 255, 255, 0.06);
+  --layout-account-hover: rgba(255, 255, 255, 0.06);
+  --layout-account-dropdown-bg: rgba(24, 26, 32, 0.98);
+  --layout-account-dropdown-border: rgba(255, 255, 255, 0.08);
+  --layout-account-item-hover: rgba(255, 255, 255, 0.06);
+  --layout-backdrop: rgba(0, 0, 0, 0.5);
+  --layout-burger-bg: rgba(255, 255, 255, 0.06);
+  --layout-burger-border: rgba(255, 255, 255, 0.08);
+  --layout-burger-hover-bg: rgba(255, 255, 255, 0.1);
+  --layout-burger-hover-border: rgba(255, 255, 255, 0.12);
+  --layout-bg-grid: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
 
   /* Auth (dashboard) */
   --auth-text: rgba(255, 255, 255, 0.92);
   --auth-text-muted: rgba(255, 255, 255, 0.5);
+  --auth-card-bg: rgba(255, 255, 255, 0.06);
+  --auth-card-border: rgba(255, 255, 255, 0.08);
+  --auth-card-glow: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.02));
+  --auth-input-bg: rgba(255, 255, 255, 0.06);
+  --auth-input-border: rgba(255, 255, 255, 0.1);
+  --auth-input-hover-bg: rgba(255, 255, 255, 0.08);
+  --auth-input-hover-border: rgba(255, 255, 255, 0.14);
+  --auth-divider-line: rgba(255, 255, 255, 0.1);
+  --auth-discord-bg: rgba(255, 255, 255, 0.06);
+  --auth-discord-border: rgba(255, 255, 255, 0.1);
+  --auth-discord-hover-bg: rgba(255, 255, 255, 0.1);
+  --auth-discord-hover-border: rgba(255, 255, 255, 0.15);
+  --auth-bg-grid: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+
+  --skeleton-gradient: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.06) 100%);
+  --loader-track: rgba(255, 255, 255, 0.12);
+
+  --theme-toggle-track: rgba(255, 255, 255, 0.06);
+  --theme-toggle-thumb: rgba(255, 255, 255, 0.12);
+  --theme-toggle-border: rgba(255, 255, 255, 0.08);
 
   color: var(--color-text);
   background-color: var(--color-bg);
@@ -60,15 +105,703 @@ button {
   font-size: inherit;
 }
 
-/* Light mode override for auth if needed */
+/* Кастомные скроллбары по всему приложению */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.04);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Светлая тема: переменные + glass, мягкий светлый фон */
 @media (prefers-color-scheme: light) {
   :root {
-    --color-text: #1a1d24;
-    --color-text-muted: #5a6178;
-    --color-background-muted: rgba(0, 0, 0, 0.06);
-    --color-bg: #f0f2f5;
-    --color-bg-elevated: #ffffff;
-    --auth-text: #1a1d24;
-    --auth-text-muted: #5a6178;
+    color-scheme: light;
+    --color-text: #1a1d26;
+    --color-text-muted: #5c6370;
+    --color-background-muted: rgba(0, 0, 0, 0.05);
+    --color-bg: #eef1f6;
+    --color-bg-elevated: #f6f8fc;
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.14);
+    --color-surface: rgba(255, 255, 255, 0.82);
+    --color-surface-hover: rgba(0, 0, 0, 0.04);
+    --color-input-bg: rgba(0, 0, 0, 0.04);
+    --color-input-border: rgba(0, 0, 0, 0.12);
+    --color-glass: rgba(255, 255, 255, 0.75);
+    --color-glass-border: rgba(0, 0, 0, 0.08);
+
+    --layout-sidebar-bg: rgba(255, 255, 255, 0.88);
+    --layout-sidebar-border: rgba(0, 0, 0, 0.08);
+    --layout-header-bg: rgba(255, 255, 255, 0.85);
+    --layout-header-border: rgba(0, 0, 0, 0.08);
+    --layout-nav-hover: rgba(0, 0, 0, 0.05);
+    --layout-account-hover: rgba(0, 0, 0, 0.05);
+    --layout-account-dropdown-bg: rgba(255, 255, 255, 0.95);
+    --layout-account-dropdown-border: rgba(0, 0, 0, 0.1);
+    --layout-account-item-hover: rgba(0, 0, 0, 0.05);
+    --layout-backdrop: rgba(0, 0, 0, 0.35);
+    --layout-burger-bg: rgba(0, 0, 0, 0.05);
+    --layout-burger-border: rgba(0, 0, 0, 0.1);
+    --layout-burger-hover-bg: rgba(0, 0, 0, 0.08);
+    --layout-burger-hover-border: rgba(0, 0, 0, 0.14);
+    --layout-bg-grid: linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+
+    --auth-text: #1a1d26;
+    --auth-text-muted: #5c6370;
+    --auth-card-bg: rgba(255, 255, 255, 0.78);
+    --auth-card-border: rgba(0, 0, 0, 0.06);
+    --auth-card-glow: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.5));
+    --auth-input-bg: rgba(0, 0, 0, 0.04);
+    --auth-input-border: rgba(0, 0, 0, 0.1);
+    --auth-input-hover-bg: rgba(0, 0, 0, 0.06);
+    --auth-input-hover-border: rgba(0, 0, 0, 0.14);
+    --auth-divider-line: rgba(0, 0, 0, 0.1);
+    --auth-discord-bg: rgba(0, 0, 0, 0.04);
+    --auth-discord-border: rgba(0, 0, 0, 0.1);
+    --auth-discord-hover-bg: rgba(0, 0, 0, 0.07);
+    --auth-discord-hover-border: rgba(0, 0, 0, 0.14);
+    --auth-bg-grid: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+
+    --skeleton-gradient: linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0%, rgba(0, 0, 0, 0.12) 50%, rgba(0, 0, 0, 0.06) 100%);
+    --loader-track: rgba(0, 0, 0, 0.12);
+
+    --theme-toggle-track: rgba(0, 0, 0, 0.06);
+    --theme-toggle-thumb: rgba(255, 255, 255, 0.9);
+    --theme-toggle-border: rgba(0, 0, 0, 0.08);
   }
+
+  * {
+    scrollbar-color: rgba(0, 0, 0, 0.25) rgba(0, 0, 0, 0.08);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.22);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  /* Layout: glass сайдбар и хедер */
+  .layout-backdrop {
+    background: var(--layout-backdrop);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .layout-sidebar {
+    background: var(--layout-sidebar-bg);
+    border-right-color: var(--layout-sidebar-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 1px 0 0 0 var(--layout-sidebar-border);
+  }
+
+  .layout-sidebar-head {
+    border-bottom-color: var(--layout-sidebar-border);
+  }
+
+  .layout-sidebar-brand {
+    color: var(--color-text);
+  }
+
+  .layout-nav-section {
+    color: var(--color-text-muted);
+  }
+
+  .layout-nav-item {
+    color: var(--color-text-muted);
+  }
+
+  .layout-nav-item:hover {
+    color: var(--color-text);
+    background: var(--layout-nav-hover);
+  }
+
+  .layout-nav-item--active {
+    color: #5865f2;
+    background: rgba(88, 101, 242, 0.12);
+  }
+
+  .layout-nav-item--active .layout-nav-icon {
+    color: #5865f2;
+  }
+
+  .layout-nav-icon {
+    color: var(--color-text-muted);
+  }
+
+  .layout-sidebar-footer {
+    border-top-color: var(--layout-sidebar-border);
+  }
+
+  .layout-account-trigger {
+    color: var(--color-text);
+  }
+
+  .layout-account-trigger:hover,
+  .layout-account-trigger--open {
+    background: var(--layout-account-hover);
+  }
+
+  .layout-account-chevron {
+    color: var(--color-text-muted);
+  }
+
+  .layout-account-dropdown {
+    background: var(--layout-account-dropdown-bg);
+    border-color: var(--layout-account-dropdown-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .layout-account-item {
+    color: var(--color-text);
+  }
+
+  .layout-account-item:hover {
+    background: var(--layout-account-item-hover);
+  }
+
+  .layout-header {
+    background: var(--layout-header-bg);
+    border-bottom-color: var(--layout-header-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 1px 0 0 var(--layout-header-border);
+  }
+
+  .layout-page-title {
+    color: var(--color-text);
+  }
+
+  .layout-burger {
+    background: var(--layout-burger-bg);
+    border-color: var(--layout-burger-border);
+    color: var(--color-text);
+  }
+
+  .layout-burger:hover {
+    background: var(--layout-burger-hover-bg);
+    border-color: var(--layout-burger-hover-border);
+  }
+
+  .layout-bg-gradient {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88, 101, 242, 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(88, 101, 242, 0.03), transparent);
+  }
+
+  .layout-bg-grid {
+    background-image: var(--layout-bg-grid);
+  }
+
+  .layout-content {
+    background-color: transparent;
+  }
+
+  .server-select-trigger {
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+    color: var(--color-text);
+  }
+
+  .server-select-trigger:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
+  }
+
+  .server-select-name {
+    color: var(--color-text);
+  }
+
+  .server-select-label {
+    color: var(--color-text-muted);
+  }
+
+  .server-select-dropdown {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border-strong);
+  }
+
+  .server-select-option {
+    color: var(--color-text);
+  }
+
+  .server-select-option:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .server-select-option--selected {
+    background: rgba(88, 101, 242, 0.1);
+  }
+
+  /* Страницы: пользователи, дашборд, настройки */
+  .users-title,
+  .dashboard-page-title,
+  .placeholder-title {
+    color: var(--color-text);
+  }
+
+  .users-subtitle,
+  .dashboard-page-subtitle,
+  .users-total,
+  .users-search-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .users-search-input {
+    color: var(--color-text);
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+  }
+
+  .users-search-input:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
+  }
+
+  .users-search-input:focus {
+    border-color: rgba(88, 101, 242, 0.5);
+    background: var(--color-bg-elevated);
+  }
+
+  .users-search-clear {
+    color: var(--color-text-muted);
+  }
+
+  .users-search-clear:hover {
+    color: var(--color-text);
+    background: var(--color-surface-hover);
+  }
+
+  .users-item {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 1px 0 0 var(--color-border);
+  }
+
+  .users-item:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
+  }
+
+  .users-item--expanded {
+    border-color: rgba(88, 101, 242, 0.35);
+    background: var(--color-bg-elevated);
+  }
+
+  .users-item-name {
+    color: var(--color-text);
+  }
+
+  .users-item-meta {
+    color: var(--color-text-muted);
+  }
+
+  .users-item-progress-track {
+    background: var(--color-input-bg);
+  }
+
+  .users-item-progress-label {
+    color: var(--color-text-muted);
+  }
+
+  .users-input {
+    color: var(--color-text);
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+  }
+
+  .users-input:focus {
+    border-color: rgba(88, 101, 242, 0.5);
+  }
+
+  .users-page-btn {
+    color: var(--color-text);
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+  }
+
+  .users-page-btn:hover:not(:disabled) {
+    background: var(--color-surface-hover);
+  }
+
+  .users-page-info {
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-stat {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 0 var(--color-border);
+  }
+
+  .dashboard-stat:hover {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border-strong);
+  }
+
+  .dashboard-stat-value {
+    color: var(--color-text);
+  }
+
+  .dashboard-stat-label {
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-top {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 0 var(--color-border);
+  }
+
+  .dashboard-top-title {
+    color: var(--color-text);
+  }
+
+  .dashboard-top-empty {
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-top-item {
+    background: var(--color-surface-hover);
+  }
+
+  .dashboard-top-item:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .dashboard-top-name {
+    color: var(--color-text);
+  }
+
+  .dashboard-top-meta {
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-top-progress-track {
+    background: var(--color-input-bg);
+  }
+
+  .dashboard-top-progress-label {
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-empty {
+    color: var(--color-text-muted);
+  }
+
+  .settings-section,
+  .settings-card {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 0 var(--color-border);
+  }
+
+  .settings-section-head {
+    color: var(--color-text);
+  }
+
+  .settings-section-head:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .settings-section-title {
+    color: var(--color-text);
+  }
+
+  .settings-label {
+    color: var(--color-text-muted);
+  }
+
+  .settings-error {
+    color: #b91c1c;
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+
+  .settings-empty {
+    color: var(--color-text-muted);
+  }
+
+  .settings-role-chip {
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+    color: var(--color-text);
+  }
+
+  .settings-role-chip:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .settings-role-chip--on {
+    background: rgba(88, 101, 242, 0.12);
+    border-color: rgba(88, 101, 242, 0.35);
+    color: #5865f2;
+  }
+
+  .settings-role-chip-text {
+    color: inherit;
+  }
+
+  .settings-input,
+  .settings-select,
+  .app-select-trigger {
+    color: var(--color-text);
+    background: var(--color-input-bg);
+    border-color: var(--color-input-border);
+  }
+
+  .settings-input:focus,
+  .settings-select:focus,
+  .app-select-trigger:hover {
+    border-color: var(--color-border-strong);
+  }
+
+  .app-select-value {
+    color: var(--color-text);
+  }
+
+  .app-select-dropdown {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border-strong);
+  }
+
+  .app-select-option {
+    color: var(--color-text);
+  }
+
+  .app-select-option:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .users-empty {
+    color: var(--color-text-muted);
+  }
+
+  .users-error {
+    color: #b91c1c;
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.25);
+  }
+
+  .dashboard-loading-text {
+    color: var(--color-text-muted);
+  }
+
+  /* Auth: светлая тема + glass */
+  .auth-page {
+    background-color: var(--color-bg);
+  }
+
+  .auth-card-inner {
+    background: var(--auth-card-bg);
+    border-color: var(--auth-card-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 0 0 1px var(--auth-card-border) inset,
+      0 24px 48px -12px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-card-glow {
+    background: var(--auth-card-glow);
+  }
+
+  .auth-bg-grid {
+    background-image: var(--auth-bg-grid);
+  }
+
+  .auth-field input {
+    background: var(--auth-input-bg);
+    border-color: var(--auth-input-border);
+    color: var(--auth-text);
+  }
+
+  .auth-field input:hover {
+    background: var(--auth-input-hover-bg);
+    border-color: var(--auth-input-hover-border);
+  }
+
+  .auth-discord {
+    background: var(--auth-discord-bg);
+    border-color: var(--auth-discord-border);
+    color: var(--auth-text);
+  }
+
+  .auth-discord:hover {
+    background: var(--auth-discord-hover-bg);
+    border-color: var(--auth-discord-hover-border);
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    background: var(--auth-divider-line);
+  }
+
+}
+
+/* Принудительная тема по выбору пользователя (переключатель в сайдбаре) */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-text: #1a1d26;
+  --color-text-muted: #5c6370;
+  --color-background-muted: rgba(0, 0, 0, 0.05);
+  --color-bg: #eef1f6;
+  --color-bg-elevated: #f6f8fc;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.14);
+  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-surface-hover: rgba(0, 0, 0, 0.04);
+  --color-input-bg: rgba(0, 0, 0, 0.04);
+  --color-input-border: rgba(0, 0, 0, 0.12);
+  --color-glass: rgba(255, 255, 255, 0.75);
+  --color-glass-border: rgba(0, 0, 0, 0.08);
+  --layout-sidebar-bg: rgba(255, 255, 255, 0.88);
+  --layout-sidebar-border: rgba(0, 0, 0, 0.08);
+  --layout-header-bg: rgba(255, 255, 255, 0.85);
+  --layout-header-border: rgba(0, 0, 0, 0.08);
+  --layout-nav-hover: rgba(0, 0, 0, 0.05);
+  --layout-account-hover: rgba(0, 0, 0, 0.05);
+  --layout-account-dropdown-bg: rgba(255, 255, 255, 0.95);
+  --layout-account-dropdown-border: rgba(0, 0, 0, 0.1);
+  --layout-account-item-hover: rgba(0, 0, 0, 0.05);
+  --layout-backdrop: rgba(0, 0, 0, 0.35);
+  --layout-burger-bg: rgba(0, 0, 0, 0.05);
+  --layout-burger-border: rgba(0, 0, 0, 0.1);
+  --layout-burger-hover-bg: rgba(0, 0, 0, 0.08);
+  --layout-burger-hover-border: rgba(0, 0, 0, 0.14);
+  --layout-bg-grid: linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  --auth-text: #1a1d26;
+  --auth-text-muted: #5c6370;
+  --auth-card-bg: rgba(255, 255, 255, 0.78);
+  --auth-card-border: rgba(0, 0, 0, 0.06);
+  --auth-card-glow: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.5));
+  --auth-input-bg: rgba(0, 0, 0, 0.04);
+  --auth-input-border: rgba(0, 0, 0, 0.1);
+  --auth-input-hover-bg: rgba(0, 0, 0, 0.06);
+  --auth-input-hover-border: rgba(0, 0, 0, 0.14);
+  --auth-divider-line: rgba(0, 0, 0, 0.1);
+  --auth-discord-bg: rgba(0, 0, 0, 0.04);
+  --auth-discord-border: rgba(0, 0, 0, 0.1);
+  --auth-discord-hover-bg: rgba(0, 0, 0, 0.07);
+  --auth-discord-hover-border: rgba(0, 0, 0, 0.14);
+  --auth-bg-grid: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  --skeleton-gradient: linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0%, rgba(0, 0, 0, 0.12) 50%, rgba(0, 0, 0, 0.06) 100%);
+  --loader-track: rgba(0, 0, 0, 0.12);
+
+  --theme-toggle-track: rgba(0, 0, 0, 0.06);
+  --theme-toggle-thumb: rgba(255, 255, 255, 0.9);
+  --theme-toggle-border: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] * {
+  scrollbar-color: rgba(0, 0, 0, 0.25) rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] *::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] *::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="light"] *::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-text: rgba(255, 255, 255, 0.92);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+  --color-background-muted: rgba(255, 255, 255, 0.08);
+  --color-bg: #0d0f14;
+  --color-bg-elevated: #14171f;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-hover: rgba(255, 255, 255, 0.1);
+  --color-input-bg: rgba(255, 255, 255, 0.06);
+  --color-input-border: rgba(255, 255, 255, 0.1);
+  --layout-sidebar-bg: rgba(18, 20, 26, 0.98);
+  --layout-sidebar-border: rgba(255, 255, 255, 0.06);
+  --layout-header-bg: rgba(13, 15, 20, 0.9);
+  --layout-header-border: rgba(255, 255, 255, 0.06);
+  --layout-nav-hover: rgba(255, 255, 255, 0.06);
+  --layout-account-hover: rgba(255, 255, 255, 0.06);
+  --layout-account-dropdown-bg: rgba(24, 26, 32, 0.98);
+  --layout-account-dropdown-border: rgba(255, 255, 255, 0.08);
+  --layout-account-item-hover: rgba(255, 255, 255, 0.06);
+  --layout-backdrop: rgba(0, 0, 0, 0.5);
+  --layout-burger-bg: rgba(255, 255, 255, 0.06);
+  --layout-burger-border: rgba(255, 255, 255, 0.08);
+  --layout-burger-hover-bg: rgba(255, 255, 255, 0.1);
+  --layout-burger-hover-border: rgba(255, 255, 255, 0.12);
+  --layout-bg-grid: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  --auth-text: rgba(255, 255, 255, 0.92);
+  --auth-text-muted: rgba(255, 255, 255, 0.5);
+  --auth-card-bg: rgba(255, 255, 255, 0.06);
+  --auth-card-border: rgba(255, 255, 255, 0.08);
+  --auth-input-bg: rgba(255, 255, 255, 0.06);
+  --auth-input-border: rgba(255, 255, 255, 0.1);
+  --auth-input-hover-bg: rgba(255, 255, 255, 0.08);
+  --auth-input-hover-border: rgba(255, 255, 255, 0.14);
+  --auth-discord-bg: rgba(255, 255, 255, 0.06);
+  --auth-discord-border: rgba(255, 255, 255, 0.1);
+  --auth-discord-hover-bg: rgba(255, 255, 255, 0.1);
+  --auth-discord-hover-border: rgba(255, 255, 255, 0.15);
+  --skeleton-gradient: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.06) 100%);
+  --loader-track: rgba(255, 255, 255, 0.12);
+  --theme-toggle-track: rgba(255, 255, 255, 0.06);
+  --theme-toggle-thumb: rgba(255, 255, 255, 0.12);
+  --theme-toggle-border: rgba(255, 255, 255, 0.08);
 }

@@ -19,12 +19,7 @@ defineProps<{
 
 <style scoped>
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: skeleton-shine 1.2s ease-in-out infinite;
 }

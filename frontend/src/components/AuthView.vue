@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { getDiscordLoginUrl } from '@/api/auth'
 
 const router = useRouter()
+const route = useRoute()
 const { login } = useAuth()
+
+const discordError = computed(() => {
+  const e = route.query.error
+  if (e === 'discord_denied') return 'Вход через Discord отменён.'
+  if (e === 'discord_token' || e === 'discord_user' || e === 'discord_guilds') return 'Ошибка входа через Discord. Попробуйте снова.'
+  return null
+})
 
 const username = ref('')
 const password = ref('')
@@ -20,7 +29,15 @@ async function handleSubmit() {
     await login(username.value, password.value)
     router.push('/dashboard')
   } catch (e) {
-    errorMessage.value = e instanceof Error ? e.message : 'Ошибка входа'
+    const msg = e instanceof Error ? e.message : 'Ошибка входа'
+    const ru: Record<string, string> = {
+      'Invalid credentials': 'Неверный логин или пароль',
+      'Invalid username or password': 'Неверный логин или пароль',
+      'Incorrect username or password': 'Неверный логин или пароль',
+      'Token expired': 'Сессия истекла',
+      'Login failed': 'Ошибка входа',
+    }
+    errorMessage.value = ru[msg] ?? msg
   } finally {
     loading.value = false
   }
@@ -54,14 +71,39 @@ onMounted(() => {
       <div class="auth-card-inner">
         <header class="auth-header">
           <div class="auth-logo">
-            <span class="auth-logo-icon">W</span>
-            <span class="auth-logo-text">Witrix Bot</span>
+            <span class="auth-logo-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="auth-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#5865f2"/>
+                    <stop offset="100%" stop-color="#7289da"/>
+                  </linearGradient>
+                </defs>
+                <rect width="32" height="32" rx="8" fill="url(#auth-logo-grad)"/>
+                <path d="M8 9l5 10 3-6 3 6 5-10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M8 23 Q 16 28 24 23" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="auth-logo-text">Discord Bot</span>
           </div>
           <p class="auth-tagline">Панель управления</p>
         </header>
 
         <form class="auth-form" :class="{ 'auth-form--visible': formVisible }" @submit.prevent="handleSubmit">
-          <p v-if="errorMessage" class="auth-error">{{ errorMessage }}</p>
+          <Transition name="auth-error">
+            <div v-if="discordError" key="discord" class="auth-error" role="alert">
+              <span class="auth-error-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+              <span class="auth-error-text">{{ discordError }}</span>
+            </div>
+            <div v-else-if="errorMessage" key="login" class="auth-error" role="alert">
+              <span class="auth-error-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+              <span class="auth-error-text">{{ errorMessage }}</span>
+            </div>
+          </Transition>
           <div class="auth-field">
             <label for="username">Логин</label>
             <input
@@ -69,7 +111,7 @@ onMounted(() => {
               v-model="username"
               type="text"
               autocomplete="username"
-              placeholder="admin"
+              placeholder="логин"
               required
             />
           </div>
@@ -96,7 +138,7 @@ onMounted(() => {
           <span>или</span>
         </div>
 
-        <a href="#" class="auth-discord" @click.prevent>
+        <a :href="getDiscordLoginUrl()" class="auth-discord">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
           </svg>
@@ -104,7 +146,7 @@ onMounted(() => {
         </a>
 
         <p class="auth-footer">
-          Нет аккаунта? <a href="#">Связаться с администратором</a>
+          Нет аккаунта? <a href="https://discord.gg/KJWY2pjE9U">Связаться с администратором</a>
         </p>
       </div>
     </div>
@@ -142,9 +184,7 @@ onMounted(() => {
 .auth-bg-grid {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-image: var(--auth-bg-grid);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black, transparent 80%);
 }
@@ -225,7 +265,7 @@ onMounted(() => {
   inset: -1px;
   border-radius: 24px;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.02));
+  background: var(--auth-card-glow);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -236,14 +276,14 @@ onMounted(() => {
 .auth-card-inner {
   position: relative;
   padding: 2rem 2rem 1.75rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--auth-card-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--auth-card-border);
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.2) inset,
-    0 24px 48px -12px rgba(0, 0, 0, 0.4);
+    0 0 0 1px rgba(0, 0, 0, 0.15) inset,
+    0 24px 48px -12px rgba(0, 0, 0, 0.35);
 }
 
 .auth-header {
@@ -261,15 +301,19 @@ onMounted(() => {
 .auth-logo-icon {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #5865f2, #7289da);
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+  overflow: hidden;
+}
+
+.auth-logo-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .auth-logo-text {
@@ -287,6 +331,10 @@ onMounted(() => {
 
 /* Form */
 .auth-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
@@ -298,17 +346,62 @@ onMounted(() => {
 }
 
 .auth-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
   margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.12);
+  padding: 0.875rem 1.125rem;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: #dc2626;
+  background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.25);
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+  box-sizing: border-box;
+}
+
+.auth-error-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-error-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-error-enter-active,
+.auth-error-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.auth-error-enter-from,
+.auth-error-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.auth-error-enter-to,
+.auth-error-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .auth-field {
+  width: 100%;
   margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.auth-field:last-of-type {
+  margin-bottom: 0;
 }
 
 .auth-field label {
@@ -321,12 +414,12 @@ onMounted(() => {
 
 .auth-field input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1.125rem;
   font-size: 0.9375rem;
   font-family: inherit;
   color: var(--auth-text);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--auth-input-bg);
+  border: 1px solid var(--auth-input-border);
   border-radius: 12px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -339,8 +432,8 @@ onMounted(() => {
 }
 
 .auth-field input:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: var(--auth-input-hover-bg);
+  border-color: var(--auth-input-hover-border);
 }
 
 .auth-field input:focus {
@@ -350,8 +443,8 @@ onMounted(() => {
 
 .auth-submit {
   width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.875rem 1.25rem;
+  margin-top: 1rem;
+  padding: 0.875rem 1.125rem;
   font-size: 0.9375rem;
   font-weight: 600;
   font-family: inherit;
@@ -362,6 +455,7 @@ onMounted(() => {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
   box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4);
+  box-sizing: border-box;
 }
 
 .auth-submit:hover:not(:disabled) {
@@ -410,7 +504,7 @@ onMounted(() => {
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--auth-divider-line);
 }
 
 .auth-divider span {
@@ -432,16 +526,16 @@ onMounted(() => {
   font-weight: 500;
   font-family: inherit;
   color: var(--auth-text);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--auth-discord-bg);
+  border: 1px solid var(--auth-discord-border);
   border-radius: 12px;
   text-decoration: none;
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
 }
 
 .auth-discord:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--auth-discord-hover-bg);
+  border-color: var(--auth-discord-hover-border);
   transform: translateY(-1px);
 }
 
@@ -466,39 +560,5 @@ onMounted(() => {
   text-decoration: underline;
 }
 
-@media (prefers-color-scheme: light) {
-  .auth-card-inner {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(0, 0, 0, 0.06);
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.04) inset,
-      0 24px 48px -12px rgba(0, 0, 0, 0.12);
-  }
-  .auth-card-glow {
-    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.4));
-  }
-  .auth-field input {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
-    color: var(--auth-text);
-  }
-  .auth-field input:hover {
-    background: rgba(0, 0, 0, 0.06);
-    border-color: rgba(0, 0, 0, 0.12);
-  }
-  .auth-discord {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
-    color: var(--auth-text);
-  }
-  .auth-discord:hover {
-    background: rgba(0, 0, 0, 0.08);
-    border-color: rgba(0, 0, 0, 0.12);
-  }
-  .auth-bg-grid {
-    background-image:
-      linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
-  }
-}
+/* Светлая тема для Auth задаётся переменными в style.css */
 </style>

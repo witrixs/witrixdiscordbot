@@ -35,7 +35,7 @@ defineProps<{
 .loader-spinner {
   width: var(--loader-size);
   height: var(--loader-size);
-  border: var(--loader-border) solid rgba(255, 255, 255, 0.12);
+  border: var(--loader-border) solid var(--loader-track);
   border-top-color: #5865f2;
   border-radius: 50%;
   animation: loader-spin 0.8s linear infinite;

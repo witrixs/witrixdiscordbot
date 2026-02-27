@@ -18,7 +18,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   if (res.status === 401) {
     localStorage.removeItem(TOKEN_KEY)
     window.location.href = '/login'
-    throw new Error('Token expired')
+    throw new Error('Сессия истекла')
   }
   return res
 }
