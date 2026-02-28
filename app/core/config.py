@@ -29,3 +29,7 @@ class Config:
     BOT_STATUS_TYPE = os.getenv("BOT_STATUS_TYPE", "listening")
     BOT_STATUS_NAME = os.getenv("BOT_STATUS_NAME", "ALBLAK 52")
 
+    # Хост для API (в Docker задать 0.0.0.0)
+    API_HOST = os.getenv("API_HOST", "127.0.0.1")
+    API_PORT = int(os.getenv("API_PORT", "4000"))
+
