@@ -255,7 +255,25 @@ install_script_to_path() {
     colorized_echo blue "Установка скрипта в $dest..."
     curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest"
     chmod +x "$dest"
-    colorized_echo green "Готово. Теперь можно вызывать: witrixdiscordbot up | down | status | logs | ..."
+    # Добавить /usr/local/bin в PATH, если ещё нет
+    if ! echo ":$PATH:" | grep -q ":/usr/local/bin:"; then
+        local rc_file=""
+        if [ -n "${SUDO_USER:-}" ]; then
+            rc_file=$(eval "echo ~$SUDO_USER")/.bashrc
+        else
+            rc_file="/root/.bashrc"
+        fi
+        [ -f "$rc_file" ] || touch "$rc_file"
+        if ! grep -q '/usr/local/bin' "$rc_file" 2>/dev/null; then
+            echo '' >> "$rc_file"
+            echo '# witrixdiscordbot' >> "$rc_file"
+            echo 'export PATH="/usr/local/bin:$PATH"' >> "$rc_file"
+            colorized_echo green "В $rc_file добавлен PATH=/usr/local/bin"
+        fi
+        export PATH="/usr/local/bin:$PATH"
+    fi
+    colorized_echo green "Готово. Вызывайте: witrixdiscordbot up | down | status | logs | ..."
+    colorized_echo cyan "Если команда не найдена — выполните: source ~/.bashrc  или откройте новый терминал."
 }
 
 usage() {
