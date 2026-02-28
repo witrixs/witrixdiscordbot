@@ -20,7 +20,7 @@ def _parse_cors_origins(raw: str) -> list[str]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Discord Bot API", version="1.0.0")
+    app = FastAPI(title="Discord Bot API", version="0.9.5")
 
     origins = _parse_cors_origins(Config.CORS_ORIGINS)
     app.add_middleware(
