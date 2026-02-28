@@ -281,7 +281,7 @@ install_script_to_path() {
 usage() {
     local name="${0##*/}"
     colorized_echo blue "======================================"
-    colorized_echo cyan "   witrixdiscordbot — управление"
+    colorized_echo cyan "   witrix-discordbot — управление"
     colorized_echo blue "======================================"
     echo
     colorized_echo cyan "Использование:"
