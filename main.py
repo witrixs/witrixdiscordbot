@@ -11,8 +11,8 @@ def run_api():
     """Запуск API в отдельном потоке (блокирующий)."""
     uvicorn.run(
         "app.main:app",
-        host="127.0.0.1",
-        port=4000,
+        host=Config.API_HOST,
+        port=Config.API_PORT,
         log_level="info",
     )
 
