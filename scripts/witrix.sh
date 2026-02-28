@@ -253,10 +253,15 @@ install_script_to_path() {
     check_running_as_root
     local dest="/usr/local/bin/witrixdiscordbot"
     colorized_echo blue "Установка скрипта в $dest..."
-    curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest" || {
-        colorized_echo red "Не удалось загрузить скрипт. Проверьте REPO_RAW_URL и доступ в интернет."
-        exit 1
-    }
+    # Как у PasarGuard: если скрипт запущен из файла (curl -o /tmp/... && bash /tmp/...), копируем его — без повторного curl
+    if [ -f "$0" ] && [ -r "$0" ] && grep -q 'witrixdiscordbot' "$0" 2>/dev/null; then
+        cp "$0" "$dest"
+    else
+        curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest" || {
+            colorized_echo red "Не удалось загрузить скрипт. Проверьте REPO_RAW_URL и доступ в интернет."
+            exit 1
+        }
+    fi
     chmod +x "$dest"
     # Симлинк в /usr/bin — он всегда в PATH, команда будет находиться сразу
     if [ -d /usr/bin ] && [ ! -L /usr/bin/witrixdiscordbot ]; then
