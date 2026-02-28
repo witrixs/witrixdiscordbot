@@ -193,8 +193,8 @@ status_command() {
 
 logs_command() {
     ensure_installed
-    ensure_up
     detect_compose
+    # Логи показываем всегда (даже если контейнер уже остановился — будут последние логи)
     $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" logs -f "$@"
 }
 
@@ -281,7 +281,7 @@ install_script_to_path() {
 usage() {
     local name="${0##*/}"
     colorized_echo blue "======================================"
-    colorized_echo cyan "   witrix-discordbot — управление"
+    colorized_echo cyan "   witrixdiscordbot — управление"
     colorized_echo blue "======================================"
     echo
     colorized_echo cyan "Использование:"
