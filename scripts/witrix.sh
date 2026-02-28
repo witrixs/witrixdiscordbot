@@ -253,27 +253,24 @@ install_script_to_path() {
     check_running_as_root
     local dest="/usr/local/bin/witrixdiscordbot"
     colorized_echo blue "Установка скрипта в $dest..."
-    curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest"
+    curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest" || {
+        colorized_echo red "Не удалось загрузить скрипт. Проверьте REPO_RAW_URL и доступ в интернет."
+        exit 1
+    }
     chmod +x "$dest"
-    # Добавить /usr/local/bin в PATH, если ещё нет
-    if ! echo ":$PATH:" | grep -q ":/usr/local/bin:"; then
-        local rc_file=""
-        if [ -n "${SUDO_USER:-}" ]; then
-            rc_file=$(eval "echo ~$SUDO_USER")/.bashrc
-        else
-            rc_file="/root/.bashrc"
-        fi
-        [ -f "$rc_file" ] || touch "$rc_file"
-        if ! grep -q '/usr/local/bin' "$rc_file" 2>/dev/null; then
-            echo '' >> "$rc_file"
-            echo '# witrixdiscordbot' >> "$rc_file"
-            echo 'export PATH="/usr/local/bin:$PATH"' >> "$rc_file"
-            colorized_echo green "В $rc_file добавлен PATH=/usr/local/bin"
-        fi
-        export PATH="/usr/local/bin:$PATH"
+    # Симлинк в /usr/bin — он всегда в PATH, команда будет находиться сразу
+    if [ -d /usr/bin ] && [ ! -L /usr/bin/witrixdiscordbot ]; then
+        ln -sf "$dest" /usr/bin/witrixdiscordbot
+        colorized_echo green "Создан симлинк /usr/bin/witrixdiscordbot"
+    fi
+    # На случай минимального PATH — добавить /usr/local/bin при следующем входе
+    local profile_d="/etc/profile.d/witrixdiscordbot.sh"
+    if [ ! -f "$profile_d" ]; then
+        echo 'export PATH="/usr/local/bin:$PATH"' > "$profile_d"
+        chmod 644 "$profile_d"
+        colorized_echo green "Добавлен $profile_d для новых сессий"
     fi
     colorized_echo green "Готово. Вызывайте: witrixdiscordbot up | down | status | logs | ..."
-    colorized_echo cyan "Если команда не найдена — выполните: source ~/.bashrc  или откройте новый терминал."
 }
 
 usage() {
