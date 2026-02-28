@@ -1,0 +1,20 @@
+# Запуск без исходного кода: только этот файл + .env на любой машине с Docker.
+# Образ должен быть собран и запушен в registry (см. README).
+# Пример: docker compose -f docker-compose.deploy.yml up -d
+
+services:
+  bot:
+    image: witrixs/witrixdiscordbot:latest
+    container_name: witrixdiscordbot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      API_HOST: "0.0.0.0"
+      API_PORT: "4000"
+    ports:
+      - "4000:4000"
+    volumes:
+      - bot_data:/app/data
+
+volumes:
+  bot_data:
