@@ -1,7 +1,3 @@
-"""
-Единая точка входа: запуск Discord-бота и FastAPI (uvicorn).
-Запуск: python main.py
-"""
 import asyncio
 import threading
 
