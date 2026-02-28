@@ -13,7 +13,7 @@ COMPOSE_FILE="$APP_DIR/docker-compose.yml"
 ENV_FILE="$APP_DIR/.env"
 
 # URL репозитория для загрузки docker-compose и .env.example (замените на свой форк/ветку)
-REPO_RAW_URL="${REPO_RAW_URL:-https://raw.githubusercontent.com/witrix/witrixdiscordbot/main}"
+REPO_RAW_URL="${REPO_RAW_URL:-https://raw.githubusercontent.com/witrixs/witrixdiscordbot/main}"
 
 colorized_echo() {
     local color=$1
@@ -284,3 +284,4 @@ case "${1:-help}" in
     edit-env)    edit_env_command ;;
     help|--help|-h|*) usage ;;
 esac
+
