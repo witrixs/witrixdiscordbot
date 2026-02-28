@@ -1,0 +1,19 @@
+services:
+  bot:
+    image: witrixdiscordbot:latest
+    build: .
+    container_name: witrixdiscordbot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # В контейнере API должен слушать все интерфейсы
+      API_HOST: "0.0.0.0"
+      API_PORT: "4000"
+    ports:
+      - "4000:4000"
+    volumes:
+      # Сохранять SQLite на хосте: в .env укажите DB_URL=sqlite:////app/data/bot.db
+      - bot_data:/app/data
+
+volumes:
+  bot_data:

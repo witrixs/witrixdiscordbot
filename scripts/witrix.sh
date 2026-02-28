@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+set -e
+
+# Handle @ symbol if used in installation (skip it)
+if [ "$1" == "@" ]; then
+    shift
+fi
+
+INSTALL_DIR="${INSTALL_DIR:-/opt}"
+APP_NAME="${APP_NAME:-witrixdiscordbot}"
+APP_DIR="$INSTALL_DIR/$APP_NAME"
+COMPOSE_FILE="$APP_DIR/docker-compose.yml"
+ENV_FILE="$APP_DIR/.env"
+
+# URL репозитория для загрузки docker-compose и .env.example (замените на свой форк/ветку)
+REPO_RAW_URL="${REPO_RAW_URL:-https://raw.githubusercontent.com/witrix/witrixdiscordbot/main}"
+
+colorized_echo() {
+    local color=$1
+    local text=$2
+    case $color in
+        red)   printf "\033[91m%s\033[0m\n" "$text" ;;
+        green) printf "\033[92m%s\033[0m\n" "$text" ;;
+        yellow) printf "\033[93m%s\033[0m\n" "$text" ;;
+        blue)   printf "\033[94m%s\033[0m\n" "$text" ;;
+        cyan)   printf "\033[96m%s\033[0m\n" "$text" ;;
+        *)      printf "%s\n" "$text" ;;
+    esac
+}
+
+check_running_as_root() {
+    if [ "$(id -u)" != "0" ]; then
+        colorized_echo red "Эту команду нужно выполнять от root (или через sudo)."
+        exit 1
+    fi
+}
+
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        OS=$(awk -F= '/^NAME=/{print $2}' /etc/os-release | tr -d '"')
+    elif [ -f /etc/redhat-release ]; then
+        OS=$(awk '{print $1}' /etc/redhat-release)
+    else
+        colorized_echo red "Не удалось определить ОС."
+        exit 1
+    fi
+}
+
+install_package() {
+    local pkg="$1"
+    colorized_echo blue "Установка $pkg..."
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -qq && apt-get install -y -qq "$pkg"
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y -q "$pkg"
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y -q "$pkg"
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Sy --noconfirm --quiet "$pkg"
+    else
+        colorized_echo red "Неизвестный менеджер пакетов."
+        exit 1
+    fi
+}
+
+install_docker() {
+    colorized_echo blue "Установка Docker..."
+    curl -fsSL https://get.docker.com | sh
+    colorized_echo green "Docker установлен."
+}
+
+detect_compose() {
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE="docker compose"
+    elif docker-compose version >/dev/null 2>&1; then
+        COMPOSE="docker-compose"
+    else
+        colorized_echo red "Не найден docker compose. Установите Docker и Docker Compose."
+        exit 1
+    fi
+}
+
+is_installed() {
+    [ -d "$APP_DIR" ] && [ -f "$COMPOSE_FILE" ]
+}
+
+ensure_installed() {
+    if ! is_installed; then
+        colorized_echo red "witrix-discordbot не установлен. Сначала выполните: witrix install"
+        exit 1
+    fi
+}
+
+ensure_up() {
+    if [ -z "$($COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" ps -q 2>/dev/null)" ]; then
+        colorized_echo red "Сервисы не запущены. Выполните: witrix up"
+        exit 1
+    fi
+}
+
+install_command() {
+    check_running_as_root
+    detect_os
+
+    if is_installed; then
+        colorized_echo yellow "witrix-discordbot уже установлен в $APP_DIR"
+        read -p "Переустановить? (y/N): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            exit 0
+        fi
+        down_command 2>/dev/null || true
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        install_package curl
+    fi
+    if ! command -v docker >/dev/null 2>&1; then
+        install_docker
+    fi
+    detect_compose
+
+    mkdir -p "$APP_DIR"
+    colorized_echo blue "Загрузка docker-compose.yml..."
+    curl -fsSL "$REPO_RAW_URL/docker-compose.deploy.yml" -o "$COMPOSE_FILE"
+    colorized_echo blue "Загрузка .env.example..."
+    curl -fsSL "$REPO_RAW_URL/.env.example" -o "$APP_DIR/.env.example"
+
+    if [ ! -f "$ENV_FILE" ]; then
+        cp "$APP_DIR/.env.example" "$ENV_FILE"
+        # Для Docker: SQLite в volume
+        if grep -q '^DB_URL=' "$ENV_FILE" 2>/dev/null; then
+            sed -i 's|^DB_URL=.*|DB_URL=sqlite:////app/data/bot.db|' "$ENV_FILE"
+        else
+            echo "DB_URL=sqlite:////app/data/bot.db" >> "$ENV_FILE"
+        fi
+        colorized_echo green "Создан $ENV_FILE — обязательно отредактируйте: укажите DISCORD_TOKEN, SECRET_KEY и Discord OAuth (DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, FRONTEND_URL)."
+    else
+        colorized_echo green "Файл .env уже существует."
+    fi
+
+    colorized_echo green "Установка завершена. Каталог: $APP_DIR"
+    colorized_echo cyan "Дальше: отредактируйте .env (witrix edit-env), затем witrix up"
+}
+
+up_command() {
+    ensure_installed
+    detect_compose
+    colorized_echo blue "Запуск контейнеров..."
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" up -d
+    colorized_echo green "Сервисы запущены. Панель и API: http://<IP>:4000"
+}
+
+down_command() {
+    ensure_installed
+    detect_compose
+    colorized_echo blue "Остановка контейнеров..."
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" down
+    colorized_echo green "Сервисы остановлены."
+}
+
+restart_command() {
+    ensure_installed
+    down_command
+    up_command
+    colorized_echo green "Перезапуск выполнен."
+}
+
+status_command() {
+    ensure_installed
+    detect_compose
+    if [ -z "$($COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" ps -q 2>/dev/null)" ]; then
+        colorized_echo yellow "Статус: остановлен"
+        return
+    fi
+    colorized_echo green "Статус: запущен"
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" ps
+}
+
+logs_command() {
+    ensure_installed
+    ensure_up
+    detect_compose
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" logs -f "$@"
+}
+
+update_command() {
+    check_running_as_root
+    ensure_installed
+    detect_compose
+    colorized_echo blue "Обновление образа..."
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" pull
+    colorized_echo blue "Перезапуск..."
+    $COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" up -d
+    colorized_echo green "Обновление завершено."
+}
+
+uninstall_command() {
+    check_running_as_root
+    ensure_installed
+    detect_compose
+    read -p "Удалить witrix-discordbot из $APP_DIR? (y/N): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        exit 0
+    fi
+    down_command
+    read -p "Удалить каталог с данными $APP_DIR? (y/N): " confirm_data
+    if [[ "$confirm_data" =~ ^[Yy]$ ]]; then
+        rm -rf "$APP_DIR"
+        colorized_echo green "Удалено: $APP_DIR"
+    else
+        colorized_echo yellow "Каталог оставлен: $APP_DIR"
+    fi
+}
+
+edit_command() {
+    ensure_installed
+    EDITOR="${EDITOR:-nano}"
+    if ! command -v "$EDITOR" >/dev/null 2>&1; then
+        detect_os
+        install_package nano
+        EDITOR=nano
+    fi
+    $EDITOR "$COMPOSE_FILE"
+}
+
+edit_env_command() {
+    ensure_installed
+    EDITOR="${EDITOR:-nano}"
+    if ! command -v "$EDITOR" >/dev/null 2>&1; then
+        detect_os
+        install_package nano
+        EDITOR=nano
+    fi
+    $EDITOR "$ENV_FILE"
+}
+
+install_script_to_path() {
+    check_running_as_root
+    local dest="/usr/local/bin/witrix"
+    colorized_echo blue "Установка скрипта в $dest..."
+    curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest"
+    chmod +x "$dest"
+    colorized_echo green "Готово. Теперь можно вызывать: witrix up | down | status | logs | ..."
+}
+
+usage() {
+    local name="${0##*/}"
+    colorized_echo blue "======================================"
+    colorized_echo cyan "   witrix-discordbot — управление"
+    colorized_echo blue "======================================"
+    echo
+    colorized_echo cyan "Использование:"
+    echo "  $name [команда]"
+    echo
+    colorized_echo cyan "Команды:"
+    echo "  install       — установить (Docker + compose + .env)"
+    echo "  install-script — установить скрипт в /usr/local/bin/witrix"
+    echo "  up            — запустить контейнеры"
+    echo "  down          — остановить контейнеры"
+    echo "  restart       — перезапустить"
+    echo "  status        — показать статус"
+    echo "  logs          — логи (docker compose logs -f)"
+    echo "  update        — обновить образ и перезапустить"
+    echo "  uninstall     — удалить установку"
+    echo "  edit          — редактировать docker-compose.yml"
+    echo "  edit-env      — редактировать .env"
+    echo "  help          — эта справка"
+    echo
+    colorized_echo cyan "Каталог установки: $APP_DIR"
+    colorized_echo blue "======================================"
+}
+
+case "${1:-help}" in
+    install)     install_command ;;
+    install-script) install_script_to_path ;;
+    up)          up_command ;;
+    down)        down_command ;;
+    restart)     restart_command ;;
+    status)      status_command ;;
+    logs)        shift; logs_command "$@" ;;
+    update)      update_command ;;
+    uninstall)   uninstall_command ;;
+    edit)        edit_command ;;
+    edit-env)    edit_env_command ;;
+    help|--help|-h|*) usage ;;
+esac
