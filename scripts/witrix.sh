@@ -86,14 +86,14 @@ is_installed() {
 
 ensure_installed() {
     if ! is_installed; then
-        colorized_echo red "witrix-discordbot не установлен. Сначала выполните: witrix install"
+        colorized_echo red "witrix-discordbot не установлен. Сначала выполните: witrixdiscordbot install"
         exit 1
     fi
 }
 
 ensure_up() {
     if [ -z "$($COMPOSE -f "$COMPOSE_FILE" -p "$APP_NAME" ps -q 2>/dev/null)" ]; then
-        colorized_echo red "Сервисы не запущены. Выполните: witrix up"
+        colorized_echo red "Сервисы не запущены. Выполните: witrixdiscordbot up"
         exit 1
     fi
 }
@@ -154,7 +154,7 @@ install_command() {
     fi
 
     colorized_echo green "Установка завершена. Каталог: $APP_DIR"
-    colorized_echo cyan "Дальше: отредактируйте .env (witrix edit-env), затем witrix up"
+    colorized_echo cyan "Дальше: отредактируйте .env (witrixdiscordbot edit-env), затем witrixdiscordbot up"
 }
 
 up_command() {
@@ -251,11 +251,11 @@ edit_env_command() {
 
 install_script_to_path() {
     check_running_as_root
-    local dest="/usr/local/bin/witrix"
+    local dest="/usr/local/bin/witrixdiscordbot"
     colorized_echo blue "Установка скрипта в $dest..."
     curl -fsSL "$REPO_RAW_URL/scripts/witrix.sh" -o "$dest"
     chmod +x "$dest"
-    colorized_echo green "Готово. Теперь можно вызывать: witrix up | down | status | logs | ..."
+    colorized_echo green "Готово. Теперь можно вызывать: witrixdiscordbot up | down | status | logs | ..."
 }
 
 usage() {
@@ -269,7 +269,7 @@ usage() {
     echo
     colorized_echo cyan "Команды:"
     echo "  install       — установить (Docker + compose + .env)"
-    echo "  install-script — установить скрипт в /usr/local/bin/witrix"
+    echo "  install-script — установить скрипт в /usr/local/bin/witrixdiscordbot"
     echo "  up            — запустить контейнеры"
     echo "  down          — остановить контейнеры"
     echo "  restart       — перезапустить"
