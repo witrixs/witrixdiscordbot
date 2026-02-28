@@ -121,19 +121,34 @@ install_command() {
 
     mkdir -p "$APP_DIR"
     colorized_echo blue "Загрузка docker-compose.yml..."
-    curl -fsSL "$REPO_RAW_URL/docker-compose.deploy.yml" -o "$COMPOSE_FILE"
+    if ! curl -fsSL "$REPO_RAW_URL/docker-compose.deploy.yml" -o "$COMPOSE_FILE" 2>/dev/null; then
+        if ! curl -fsSL "$REPO_RAW_URL/docker-compose.yml" -o "$COMPOSE_FILE" 2>/dev/null; then
+            colorized_echo red "Не удалось загрузить compose. Проверьте:"
+            colorized_echo yellow "  $REPO_RAW_URL/docker-compose.deploy.yml"
+            colorized_echo yellow "  или ветку (main/master). Убедитесь, что файлы есть в репозитории на GitHub."
+            exit 1
+        fi
+    fi
     colorized_echo blue "Загрузка .env.example..."
-    curl -fsSL "$REPO_RAW_URL/.env.example" -o "$APP_DIR/.env.example"
+    if ! curl -fsSL "$REPO_RAW_URL/.env.example" -o "$APP_DIR/.env.example" 2>/dev/null; then
+        colorized_echo yellow "Не удалось загрузить .env.example. Создайте .env вручную из примера в README."
+        touch "$ENV_FILE"
+    fi
 
     if [ ! -f "$ENV_FILE" ]; then
-        cp "$APP_DIR/.env.example" "$ENV_FILE"
-        # Для Docker: SQLite в volume
-        if grep -q '^DB_URL=' "$ENV_FILE" 2>/dev/null; then
-            sed -i 's|^DB_URL=.*|DB_URL=sqlite:////app/data/bot.db|' "$ENV_FILE"
+        if [ -f "$APP_DIR/.env.example" ]; then
+            cp "$APP_DIR/.env.example" "$ENV_FILE"
+            # Для Docker: SQLite в volume
+            if grep -q '^DB_URL=' "$ENV_FILE" 2>/dev/null; then
+                sed -i 's|^DB_URL=.*|DB_URL=sqlite:////app/data/bot.db|' "$ENV_FILE"
+            else
+                echo "DB_URL=sqlite:////app/data/bot.db" >> "$ENV_FILE"
+            fi
+            colorized_echo green "Создан $ENV_FILE — отредактируйте: DISCORD_TOKEN, SECRET_KEY, Discord OAuth, FRONTEND_URL."
         else
-            echo "DB_URL=sqlite:////app/data/bot.db" >> "$ENV_FILE"
+            echo "DB_URL=sqlite:////app/data/bot.db" > "$ENV_FILE"
+            colorized_echo yellow "Создан пустой $ENV_FILE. Добавьте DISCORD_TOKEN, SECRET_KEY и остальные переменные (см. README)."
         fi
-        colorized_echo green "Создан $ENV_FILE — обязательно отредактируйте: укажите DISCORD_TOKEN, SECRET_KEY и Discord OAuth (DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, FRONTEND_URL)."
     else
         colorized_echo green "Файл .env уже существует."
     fi
@@ -284,4 +299,3 @@ case "${1:-help}" in
     edit-env)    edit_env_command ;;
     help|--help|-h|*) usage ;;
 esac
-
